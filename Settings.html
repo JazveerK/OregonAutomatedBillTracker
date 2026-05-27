@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Google Sans', Arial, sans-serif;
+    font-size: 13px;
+    color: #202124;
+    padding: 20px 24px 16px;
+  }
+
+  h2 {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1a5276;
+    margin-bottom: 4px;
+  }
+  .subtitle {
+    font-size: 12px;
+    color: #5f6368;
+    margin-bottom: 18px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid #e8eaed;
+  }
+
+  .field { margin-bottom: 16px; }
+
+  label {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    color: #3c4043;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 5px;
+  }
+
+  input[type="text"], select {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid #dadce0;
+    border-radius: 4px;
+    font-size: 13px;
+    color: #202124;
+  }
+  input:focus, select:focus {
+    outline: none;
+    border-color: #1a5276;
+    box-shadow: 0 0 0 2px #d6eaf8;
+  }
+
+  .hint {
+    font-size: 11px;
+    color: #5f6368;
+    margin-top: 4px;
+    line-height: 1.5;
+  }
+
+  .section-header {
+    font-size: 11px;
+    font-weight: 700;
+    color: #1a5276;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin: 20px 0 12px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid #d6eaf8;
+  }
+
+  .alert-status-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    border: 1px solid #e8eaed;
+    margin-bottom: 12px;
+  }
+  .alert-status-label { font-size: 12px; font-weight: 600; }
+  .badge-on  { background: #e6f4ea; color: #137333; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 10px; }
+  .badge-off { background: #f1f3f4; color: #5f6368; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 10px; }
+
+  .btn-row { display: flex; gap: 8px; }
+  .btn {
+    padding: 7px 16px;
+    border: none;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    flex: 1;
+  }
+  .btn-enable  { background: #1a5276; color: #fff; }
+  .btn-disable { background: #fce8e6; color: #c5221f; }
+  .btn-primary { background: #1a5276; color: #fff; padding: 8px 22px; font-size: 13px; flex: none; }
+  .btn-cancel  { background: #f1f3f4; color: #202124; padding: 8px 22px; font-size: 13px; flex: none; }
+  .btn:hover { filter: brightness(0.93); }
+
+  .status {
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    margin-bottom: 12px;
+    display: none;
+  }
+  .status.success { background: #e6f4ea; color: #137333; display: block; }
+  .status.error   { background: #fce8e6; color: #c5221f; display: block; }
+
+  .actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid #e8eaed;
+  }
+</style>
+</head>
+<body>
+
+<h2>Oregon Bill Tracker</h2>
+<div class="subtitle">Settings for your organization</div>
+
+<div id="status-msg" class="status"></div>
+
+<div class="section-header">Organization</div>
+
+<div class="field">
+  <label>Organization Name</label>
+  <input type="text" id="org-name" placeholder="e.g. Oregon Hunger Task Force" />
+  <div class="hint">Used in email alert subjects and report headers.</div>
+</div>
+
+<div class="field">
+  <label>Default Session</label>
+  <select id="def-session">
+    <option value="">Loading…</option>
+  </select>
+  <div class="hint">Pre-selected when you open the Bill Tracker sidebar.</div>
+</div>
+
+<div class="section-header">Email Alerts</div>
+
+<div class="alert-status-row">
+  <span class="alert-status-label">Daily status check</span>
+  <span id="alerts-badge" class="badge-off">Off</span>
+</div>
+
+<div class="hint" style="margin-bottom:12px">
+  When enabled, tracked bills are checked each morning at 8am. If any bill's status changed,
+  an email digest is sent to the address(es) in that bill's "Email Alerts" column.
+  Enable/disable from the <strong>Oregon Bill Tracker</strong> menu, or use the buttons below.
+</div>
+
+<div class="btn-row">
+  <button class="btn btn-enable" onclick="doEnable()">Enable Daily Alerts</button>
+  <button class="btn btn-disable" onclick="doDisable()">Disable Alerts</button>
+</div>
+
+<div class="actions">
+  <button class="btn btn-cancel" onclick="google.script.host.close()">Cancel</button>
+  <button class="btn btn-primary" onclick="doSave()">Save Settings</button>
+</div>
+
+<script>
+  // Load settings and sessions
+  google.script.run
+    .withSuccessHandler(function(s) {
+      document.getElementById('org-name').value = s.orgName || '';
+      document.getElementById('def-session').value = s.defaultSession || '2025R1';
+      updateAlertsBadge(s.alertsEnabled);
+    })
+    .getSettingsForUI();
+
+  google.script.run
+    .withSuccessHandler(function(sessions) {
+      var sel = document.getElementById('def-session');
+      sel.innerHTML = sessions.map(function(s) {
+        return '<option value="' + s.key + '">' + s.name + '</option>';
+      }).join('');
+
+      google.script.run
+        .withSuccessHandler(function(s) { sel.value = s.defaultSession || '2025R1'; })
+        .getSettingsForUI();
+    })
+    .getSessionsForUI();
+
+  function updateAlertsBadge(enabled) {
+    var badge = document.getElementById('alerts-badge');
+    badge.textContent = enabled ? 'On — daily at 8am' : 'Off';
+    badge.className   = enabled ? 'badge-on' : 'badge-off';
+  }
+
+  function doEnable() {
+    google.script.run
+      .withSuccessHandler(function() { updateAlertsBadge(true); showStatus('success', '✓ Daily alerts enabled.'); })
+      .withFailureHandler(function(e) { showStatus('error', '⚠ ' + e.message); })
+      .enableDailyAlerts();
+  }
+
+  function doDisable() {
+    google.script.run
+      .withSuccessHandler(function() { updateAlertsBadge(false); showStatus('success', '✓ Alerts disabled.'); })
+      .withFailureHandler(function(e) { showStatus('error', '⚠ ' + e.message); })
+      .disableDailyAlerts();
+  }
+
+  function doSave() {
+    var settings = {
+      orgName: document.getElementById('org-name').value.trim(),
+      defaultSession: document.getElementById('def-session').value
+    };
+
+    google.script.run
+      .withSuccessHandler(function() {
+        showStatus('success', '✓ Settings saved.');
+        setTimeout(function() { google.script.host.close(); }, 1400);
+      })
+      .withFailureHandler(function(e) { showStatus('error', '⚠ ' + e.message); })
+      .saveSettingsFromUI(settings);
+  }
+
+  function showStatus(type, msg) {
+    var el = document.getElementById('status-msg');
+    el.className = 'status ' + type;
+    el.textContent = msg;
+  }
+</script>
+</body>
+</html>

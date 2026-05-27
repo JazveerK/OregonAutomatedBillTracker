@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Google Sans', Arial, sans-serif;
+    font-size: 13px;
+    color: #202124;
+    background: #fff;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .header {
+    background: #1a5276;
+    color: #fff;
+    padding: 10px 14px 9px;
+    flex-shrink: 0;
+  }
+  .header-title { font-size: 14px; font-weight: 700; }
+  .header-sub   { font-size: 11px; opacity: 0.75; margin-top: 1px; }
+
+  .search-panel {
+    padding: 10px 12px;
+    border-bottom: 2px solid #e8eaed;
+    flex-shrink: 0;
+  }
+
+  label {
+    display: block;
+    font-size: 10px;
+    font-weight: 700;
+    color: #5f6368;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 3px;
+  }
+
+  select, input[type="text"], input[type="email"] {
+    width: 100%;
+    padding: 6px 8px;
+    border: 1px solid #dadce0;
+    border-radius: 4px;
+    font-size: 12px;
+    color: #202124;
+    background: #fff;
+    margin-bottom: 7px;
+  }
+  select:focus, input:focus {
+    outline: none;
+    border-color: #1a5276;
+    box-shadow: 0 0 0 2px #d6eaf8;
+  }
+
+  .row { display: flex; gap: 7px; }
+  .row > .field { flex: 1; }
+
+  .btn {
+    border: none;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 7px 12px;
+    transition: filter 0.1s;
+  }
+  .btn:hover:not(:disabled) { filter: brightness(0.92); }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-primary { background: #1a5276; color: #fff; width: 100%; }
+  .btn-outline  { background: #fff; color: #1a5276; border: 1.5px solid #1a5276; }
+  .btn-sm { padding: 4px 10px; font-size: 11px; }
+  .btn-ghost { background: #f1f3f4; color: #3c4043; border: none; }
+
+  .status {
+    font-size: 11px;
+    padding: 5px 8px;
+    border-radius: 3px;
+    margin-top: 6px;
+    display: none;
+    line-height: 1.4;
+  }
+  .status.info    { background: #e8f4f8; color: #1a5276; display: block; }
+  .status.success { background: #e6f4ea; color: #137333; display: block; }
+  .status.error   { background: #fce8e6; color: #c5221f; display: block; }
+  .status.loading { background: #fef7e0; color: #7a5c00; display: block; }
+
+  .results { flex: 1; overflow-y: auto; }
+
+  .empty-state {
+    padding: 28px 16px;
+    text-align: center;
+    color: #5f6368;
+    font-size: 12px;
+    line-height: 1.6;
+  }
+  .empty-state .icon { font-size: 28px; margin-bottom: 8px; }
+
+  .bill-card {
+    padding: 9px 12px;
+    border-bottom: 1px solid #f1f3f4;
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+  .bill-card:hover { background: #f8f9fa; }
+  .bill-card.expanded { background: #f0f7ff; }
+
+  .card-top { display: flex; justify-content: space-between; align-items: flex-start; }
+  .bill-id    { font-size: 13px; font-weight: 700; color: #1a5276; }
+  .bill-title { font-size: 12px; color: #202124; margin: 3px 0 4px; line-height: 1.35; }
+  .bill-loc {
+    display: inline-block;
+    font-size: 10px;
+    color: #5f6368;
+    background: #f1f3f4;
+    border-radius: 3px;
+    padding: 2px 6px;
+  }
+  .badge-emergency {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 700;
+    color: #c5221f;
+    background: #fce8e6;
+    border-radius: 3px;
+    padding: 2px 6px;
+    margin-left: 4px;
+  }
+  .badge-tracked {
+    font-size: 10px;
+    font-weight: 700;
+    color: #137333;
+    background: #e6f4ea;
+    border-radius: 3px;
+    padding: 2px 6px;
+  }
+
+  .bill-detail { margin-top: 8px; display: none; }
+
+  .detail-grid {
+    font-size: 11px;
+    color: #3c4043;
+    line-height: 1.6;
+    margin-bottom: 8px;
+  }
+  .detail-grid strong { color: #202124; font-weight: 600; }
+
+  .card-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+
+  /* Email alert box — shown after tracking */
+  .alert-box {
+    margin-top: 10px;
+    padding: 9px 10px;
+    background: #fef7e0;
+    border-radius: 4px;
+    border-left: 3px solid #f9a825;
+    display: none;
+  }
+  .alert-box label { color: #7a5c00; margin-bottom: 5px; }
+  .alert-row { display: flex; gap: 6px; }
+  .alert-row input { flex: 1; margin-bottom: 0; }
+
+  /* History */
+  .history-panel { margin-top: 8px; display: none; }
+  .history-item {
+    font-size: 11px;
+    padding: 3px 0;
+    border-bottom: 1px solid #f1f3f4;
+    color: #3c4043;
+    line-height: 1.4;
+  }
+  .history-date { font-weight: 600; color: #1a5276; }
+
+  .bottom-bar {
+    display: flex;
+    gap: 7px;
+    padding: 9px 12px;
+    border-top: 2px solid #e8eaed;
+    background: #fff;
+    flex-shrink: 0;
+  }
+
+  .spinner {
+    display: inline-block;
+    width: 12px; height: 12px;
+    border: 2px solid #ccc;
+    border-top-color: currentColor;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    vertical-align: middle;
+    margin-right: 5px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-title">Oregon Bill Tracker</div>
+  <div class="header-sub">OLIS Legislative Data</div>
+</div>
+
+<div class="search-panel">
+
+  <div class="field">
+    <label>Session</label>
+    <select id="sel-session">
+      <option>Loading sessions…</option>
+    </select>
+  </div>
+
+  <div class="field">
+    <label>Search — keyword or bill number (e.g. HB 4111)</label>
+    <input type="text" id="inp-keyword" placeholder="housing, HB 4111, immigration…" />
+  </div>
+
+  <div class="row">
+    <div class="field">
+      <label>Chamber</label>
+      <select id="sel-chamber">
+        <option value="All">All</option>
+        <option value="House">House</option>
+        <option value="Senate">Senate</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Bill Type</label>
+      <select id="sel-type">
+        <option value="All">All</option>
+        <option value="HB">HB</option>
+        <option value="SB">SB</option>
+        <option value="HCR">HCR</option>
+        <option value="SCR">SCR</option>
+        <option value="HJR">HJR</option>
+        <option value="SJR">SJR</option>
+      </select>
+    </div>
+  </div>
+
+  <button class="btn btn-primary" id="btn-search" onclick="doSearch()">Search Bills</button>
+  <div id="status-search" class="status"></div>
+</div>
+
+<div class="results" id="results">
+  <div class="empty-state">
+    <div class="icon">🏛️</div>
+    Search above — by keyword or bill number.<br>
+    <small>Powered by OLIS · Oregon Legislature</small>
+  </div>
+</div>
+
+<div class="bottom-bar">
+  <button class="btn btn-outline" style="flex:1" onclick="doRefresh()">↻ Refresh Tracked</button>
+  <button class="btn btn-ghost btn-sm" style="flex:none" onclick="doOpenSettings()" title="Settings">⚙</button>
+</div>
+
+<script>
+  var results = [];
+  var defaultSession = '2025R1';
+
+  // ── Init ───────────────────────────────────────────────
+  google.script.run
+    .withSuccessHandler(function(sessions) {
+      var sel = document.getElementById('sel-session');
+      sel.innerHTML = sessions.map(function(s) {
+        return '<option value="' + s.key + '">' + s.name + '</option>';
+      }).join('');
+      sel.value = defaultSession;
+    })
+    .withFailureHandler(function(e) {
+      setStatus('status-search', 'error', '⚠ Could not load sessions: ' + e.message);
+    })
+    .getSessionsForUI();
+
+  google.script.run
+    .withSuccessHandler(function(s) {
+      if (s.defaultSession) {
+        defaultSession = s.defaultSession;
+        var sel = document.getElementById('sel-session');
+        if (sel.querySelector('option[value="' + defaultSession + '"]')) {
+          sel.value = defaultSession;
+        }
+      }
+    })
+    .getSettingsForUI();
+
+  // ── Search ─────────────────────────────────────────────
+  function doSearch() {
+    var session = document.getElementById('sel-session').value;
+    var keyword = document.getElementById('inp-keyword').value.trim();
+    var chamber = document.getElementById('sel-chamber').value;
+    var type    = document.getElementById('sel-type').value;
+
+    if (!keyword && type === 'All' && chamber === 'All') {
+      setStatus('status-search', 'error', 'Enter a keyword, bill number, or select a filter.');
+      return;
+    }
+
+    setStatus('status-search', 'loading', '<span class="spinner"></span>Searching OLIS…');
+    document.getElementById('btn-search').disabled = true;
+    document.getElementById('results').innerHTML = '';
+
+    google.script.run
+      .withSuccessHandler(showResults)
+      .withFailureHandler(function(e) {
+        setStatus('status-search', 'error', '⚠ ' + e.message);
+        document.getElementById('btn-search').disabled = false;
+      })
+      .searchBillsForUI(session, keyword, chamber, type);
+  }
+
+  // ── Render results ─────────────────────────────────────
+  function showResults(bills) {
+    results = bills;
+    document.getElementById('btn-search').disabled = false;
+
+    if (bills.length === 0) {
+      setStatus('status-search', 'info', 'No bills found. Try different keywords or filters.');
+      document.getElementById('results').innerHTML =
+        '<div class="empty-state"><div class="icon">🔍</div>No results — try broader keywords.</div>';
+      return;
+    }
+
+    setStatus('status-search', 'success',
+      'Found ' + bills.length + ' bill' + (bills.length !== 1 ? 's' : '') + '. Click a bill to expand.');
+
+    document.getElementById('results').innerHTML = bills.map(function(b, i) {
+      return [
+        '<div class="bill-card" id="card-' + i + '" onclick="toggleCard(' + i + ')">',
+          '<div class="card-top">',
+            '<span class="bill-id">' + esc(b.MeasurePrefix + ' ' + b.MeasureNumber) + '</span>',
+            '<span id="tracked-badge-' + i + '"></span>',
+          '</div>',
+          '<div class="bill-title">' + esc(b.CatchLine || b.MeasureSummary || 'No title on record') + '</div>',
+          '<div>',
+            '<span class="bill-loc">' + esc(b.CurrentLocation || 'Status unknown') + '</span>',
+            (b.EmergencyClause ? '<span class="badge-emergency">Emergency Clause</span>' : ''),
+          '</div>',
+          '<div class="bill-detail" id="detail-' + i + '">',
+            '<div class="detail-grid">',
+              '<strong>Type:</strong> ' + esc(b.billTypeFull || b.MeasurePrefix) + '<br>',
+              '<strong>Fiscal:</strong> ' + esc(b.FiscalImpact || 'Not stated') + '<br>',
+              '<strong>Revenue:</strong> ' + esc(b.RevenueImpact || 'Not stated') + '<br>',
+              (b.AtTheRequestOf ? '<strong>Requested by:</strong> ' + esc(b.AtTheRequestOf) + '<br>' : ''),
+            '</div>',
+            '<div class="card-actions">',
+              '<button class="btn btn-primary btn-sm" id="btn-track-' + i + '" onclick="event.stopPropagation(); doTrack(' + i + ')">+ Track</button>',
+              '<button class="btn btn-outline btn-sm" onclick="event.stopPropagation(); openOlis(' + i + ')">OLIS ↗</button>',
+              '<button class="btn btn-outline btn-sm" id="btn-hist-' + i + '" onclick="event.stopPropagation(); doHistory(' + i + ')">History</button>',
+            '</div>',
+            // Email alert box — hidden until bill is tracked
+            '<div class="alert-box" id="alert-box-' + i + '">',
+              '<label>Get email alerts when status changes:</label>',
+              '<div class="alert-row">',
+                '<input type="email" id="alert-email-' + i + '" placeholder="you@example.com" onclick="event.stopPropagation()">',
+                '<button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); doSubscribe(' + i + ')">Subscribe</button>',
+              '</div>',
+              '<div id="alert-status-' + i + '" class="status" style="margin-top:4px"></div>',
+            '</div>',
+            // History panel
+            '<div class="history-panel" id="history-' + i + '">',
+              '<div style="font-size:11px;font-weight:700;color:#5f6368;margin:8px 0 4px;">LEGISLATIVE HISTORY</div>',
+              '<div id="history-list-' + i + '"></div>',
+            '</div>',
+          '</div>',
+        '</div>'
+      ].join('');
+    }).join('');
+  }
+
+  function toggleCard(i) {
+    var detail = document.getElementById('detail-' + i);
+    var card   = document.getElementById('card-' + i);
+    var open   = detail.style.display === 'block';
+    detail.style.display = open ? 'none' : 'block';
+    card.className = 'bill-card' + (open ? '' : ' expanded');
+  }
+
+  // ── Track ──────────────────────────────────────────────
+  function doTrack(i) {
+    var bill = results[i];
+    var btn  = document.getElementById('btn-track-' + i);
+    btn.disabled = true;
+    btn.textContent = 'Adding…';
+
+    google.script.run
+      .withSuccessHandler(function(res) {
+        if (res.success) {
+          btn.textContent = '✓ Tracked';
+          document.getElementById('tracked-badge-' + i).innerHTML =
+            '<span class="badge-tracked">Tracked</span>';
+          // Show email subscription prompt
+          document.getElementById('alert-box-' + i).style.display = 'block';
+          setStatus('status-search', 'success', res.message);
+        } else {
+          btn.textContent = '✓ Already tracked';
+          // Still show subscription box for already-tracked bills
+          document.getElementById('alert-box-' + i).style.display = 'block';
+          setStatus('status-search', 'info', res.message);
+        }
+      })
+      .withFailureHandler(function(e) {
+        btn.disabled = false;
+        btn.textContent = '+ Track';
+        setStatus('status-search', 'error', '⚠ ' + e.message);
+      })
+      .trackBillFromUI(bill);
+  }
+
+  // ── Email subscription ─────────────────────────────────
+  function doSubscribe(i) {
+    var bill  = results[i];
+    var email = document.getElementById('alert-email-' + i).value.trim();
+    var statusEl = document.getElementById('alert-status-' + i);
+
+    if (!email || !email.includes('@')) {
+      statusEl.className = 'status error';
+      statusEl.textContent = 'Enter a valid email address.';
+      statusEl.style.display = 'block';
+      return;
+    }
+
+    statusEl.className = 'status loading';
+    statusEl.innerHTML = '<span class="spinner"></span>Subscribing…';
+    statusEl.style.display = 'block';
+
+    google.script.run
+      .withSuccessHandler(function(res) {
+        statusEl.className = 'status ' + (res.success ? 'success' : 'info');
+        statusEl.textContent = res.message;
+        if (res.success) document.getElementById('alert-email-' + i).value = '';
+      })
+      .withFailureHandler(function(e) {
+        statusEl.className = 'status error';
+        statusEl.textContent = '⚠ ' + e.message;
+      })
+      .addEmailAlertForUI(bill.SessionKey, bill.MeasurePrefix, bill.MeasureNumber, email);
+  }
+
+  // ── Open OLIS ──────────────────────────────────────────
+  function openOlis(i) {
+    window.open(results[i].olisUrl, '_blank');
+  }
+
+  // ── History ────────────────────────────────────────────
+  function doHistory(i) {
+    var bill  = results[i];
+    var panel = document.getElementById('history-' + i);
+    var list  = document.getElementById('history-list-' + i);
+    var btn   = document.getElementById('btn-hist-' + i);
+
+    if (panel.style.display === 'block') {
+      panel.style.display = 'none';
+      btn.textContent = 'History';
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = '…';
+    panel.style.display = 'block';
+    list.innerHTML = '<span class="spinner"></span>Loading…';
+
+    google.script.run
+      .withSuccessHandler(function(actions) {
+        btn.textContent = 'History';
+        btn.disabled = false;
+        if (actions.length === 0) {
+          list.innerHTML = '<div class="history-item">No history on record.</div>';
+          return;
+        }
+        list.innerHTML = actions.map(function(a) {
+          return '<div class="history-item"><span class="history-date">' +
+            esc(a.date) + '</span> [' + esc(a.chamber) + '] ' + esc(a.action) + '</div>';
+        }).join('');
+      })
+      .withFailureHandler(function(e) {
+        list.innerHTML = '<span style="color:#c5221f">' + esc(e.message) + '</span>';
+        btn.textContent = 'History';
+        btn.disabled = false;
+      })
+      .getBillHistoryForUI(bill.SessionKey, bill.MeasurePrefix, bill.MeasureNumber);
+  }
+
+  // ── Refresh ────────────────────────────────────────────
+  function doRefresh() {
+    setStatus('status-search', 'loading', '<span class="spinner"></span>Refreshing tracked bills…');
+    google.script.run
+      .withSuccessHandler(function() {
+        setStatus('status-search', 'success', 'Tracked bills refreshed.');
+      })
+      .withFailureHandler(function(e) {
+        setStatus('status-search', 'error', '⚠ ' + e.message);
+      })
+      .refreshAllTrackedBills();
+  }
+
+  // ── Settings ───────────────────────────────────────────
+  function doOpenSettings() {
+    google.script.run.openSettings();
+  }
+
+  // ── Keyboard shortcut ──────────────────────────────────
+  document.getElementById('inp-keyword').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') doSearch();
+  });
+
+  // ── Helpers ────────────────────────────────────────────
+  function setStatus(id, type, html) {
+    var el = document.getElementById(id);
+    el.className = 'status ' + type;
+    el.innerHTML = html;
+  }
+
+  function esc(str) {
+    return String(str || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+</script>
+</body>
+</html>
